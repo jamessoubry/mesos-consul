@@ -1,0 +1,30 @@
+{
+  "sleep-on-error-ms": 5000,
+  "dry-run":           false,
+  "mesos":             {
+    "address": "zk://zookeeper.service.consul:2181/mesos/main-1"
+  },
+  "consul":            [
+    {
+      "address": "http://consul.service.consul:8500",
+      "token":   "as-asd-sdads-asda-sd"
+    }
+  ],
+  "transform":         [
+    {
+      "type":   "regex",
+      "match":  {
+        "operator": "and|or",
+        "matches":  {
+          "name":          "$REGEX",
+          "label:account": "$REGEX",
+          "task_id":       "$REGEX",
+          "port:name":     "$REGEX"
+        }
+      },
+      "target": {
+        "eval": "${name.project}.${name.code}.${label:account}-task-"
+      }
+    }
+  ]
+}

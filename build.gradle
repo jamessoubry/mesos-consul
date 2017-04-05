@@ -1,0 +1,48 @@
+group 'net.evilezh'
+version '0.0.1'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.eclipse.jetty', name: 'jetty-client', version: '9.4.0.v20161208'
+    compile group: 'org.apache.zookeeper', name: 'zookeeper', version: '3.4.9'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.8.6'
+//    compile group: 'org.python', name: 'jython-standalone', version: '2.8.0'
+//    compile group: 'org.jruby', name: 'jruby', version: '9.1.7.0'
+    compile('com.jayway.jsonpath:json-path:+') {
+        exclude group: 'net.minidev', module: 'json-smart' //by both name and group
+    }
+
+    compile "org.apache.logging.log4j:log4j-slf4j-impl:2.8"
+    compile "org.apache.logging.log4j:log4j-core:2.8"
+    //compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.24'
+
+
+
+}
+
+configurations {
+    all*.exclude group: 'log4j', module: 'log4j'
+    all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+}
+
+jar {
+    from {
+        (configurations.runtime).collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    manifest {
+        attributes("Main-Class": "net.evilezh.mesosconsul.Main")
+    }
+}
