@@ -18,7 +18,7 @@ public class Status {
     public String state;
     public String source;
     @JsonProperty("container_status")
-    ContainerStatus containerStatus;
+    public ContainerStatus containerStatus;
     public String message;
     @JsonProperty("labels")
     Map<String, String> labels;

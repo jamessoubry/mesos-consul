@@ -6,6 +6,10 @@ import net.evilezh.mesosconsul.transform.Transform;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Map;
+
 
 public class EventProcessor {
     private final static ObjectMapper mapper = new ObjectMapper();
@@ -20,6 +24,8 @@ public class EventProcessor {
 
     public synchronized void process(byte[] data) {
         try {
+            Object o = mapper.readValue(data,Map.class);
+            Files.write(Paths.get("C:\\Users\\evilezh\\Desktop\\out1.json"),mapper.writeValueAsBytes(o));
             Event event = mapper.readValue(data, Event.class);
             logger.info("Got event: " + event.getClass().getName());
             if (event instanceof SubscribedD) {

@@ -19,7 +19,7 @@ public class AgentInfo {
 
     public void setAttributes(List<Map<String, Object>> data) {
         attributes = data.stream().collect(Collectors.toMap(it -> (String) it.get("name"), it ->
-                it.get(((String) it.get("type")).toLowerCase())
+                ((Map<String,Object>)it.get(((String) it.get("type")).toLowerCase())).get("value")
         ));
     }
 }

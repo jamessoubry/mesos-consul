@@ -52,7 +52,11 @@ public class Mesos {
 //            List<String> collect = transform.stream().map(it -> it.apply(task, agents.get(task.agentId))).flatMap(Collection::stream).collect(Collectors.toList());
             logger.info("-----------------");
             if (taskNames.size() > 0) {
-                taskNames.entrySet().forEach(entry -> logger.info(() -> entry.getKey() + ":" + entry.getValue()));
+                //TODO add extra checks of data existence
+                String ip = task.statuses.stream().filter(it -> it.state.equals("TASK_RUNNING")).findFirst().get().containerStatus.networkInfos.get(0).ipAddresses.get(0).ipAddress;
+                taskNames.entrySet().forEach(entry -> logger.info(() -> entry.getKey() + ":" + entry.getValue() + " -> " + ip));
+
+
             } else {
                 logger.error("EMPTY task: " + task.name);
             }
