@@ -6,10 +6,9 @@ import java.util.Optional;
 
 public class Consul {
     public String address;
+    public String path;
     public Optional<String> token = Optional.empty();
-    @JsonProperty("service-prefix")
-    public String servicePrefix;
-
+    public long retryInterval = 5000;
     public void setToken(String data) {
         token = Optional.of(data);
     }

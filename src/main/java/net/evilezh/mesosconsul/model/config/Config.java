@@ -2,34 +2,29 @@ package net.evilezh.mesosconsul.model.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.evilezh.mesosconsul.exceptions.ConfigParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.List;
-import java.util.Optional;
 
 public class Config {
     private static final Logger logger = LogManager.getLogger(Config.class);
 
-    public Mesos mesos;
-    public Consul consul;
-    public List<Transform> transform;
-    @JsonProperty("sleep-on-error-ms")
-    public long sleep;
+    //default to dry run mode
     @JsonProperty("dry-run")
-    public boolean dryDrun;
+    public boolean dryRun = true;
 
-    public static Optional<Config> makeConfig(byte[] bytes) {
+    @JsonProperty("service-prefix")
+    public String servicePrefix = "mconsul";
+
+    @JsonProperty("max-consul-call-threads")
+    public int consulThreads = 10;
+
+    public static Config makeConfig(byte[] bytes) throws ConfigParseException {
         ObjectMapper om = new ObjectMapper();
         try {
-            return Optional.ofNullable(om.readValue(bytes, Config.class));
+            return om.readValue(bytes, Config.class);
         } catch (Exception e) {
-            logger.error("Failed to read configuration ... ", e);
-            return Optional.empty();
+            throw new ConfigParseException(e);
         }
-    }
-
-    public static boolean isValid(byte[] bytes) {
-        return makeConfig(bytes).isPresent();
     }
 }

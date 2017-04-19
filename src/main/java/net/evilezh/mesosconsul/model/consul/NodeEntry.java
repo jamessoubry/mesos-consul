@@ -8,5 +8,5 @@ public class NodeEntry {
     @JsonProperty("Node")
     public Node node;
     @JsonProperty("Services")
-    public Map<String, Service> services;
+    public Map<String, ConsulService> services;
 }

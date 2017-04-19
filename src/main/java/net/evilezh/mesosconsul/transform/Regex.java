@@ -6,11 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import net.evilezh.mesosconsul.model.config.*;
+import net.evilezh.mesosconsul.model.config.Transform;
 import net.evilezh.mesosconsul.model.mesos.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -23,9 +23,11 @@ public class Regex extends AbstractTranform {
     private static Pattern varExtract = Pattern.compile("(?<=\\$\\{)[^}]+(?=})");
     private static ObjectMapper mapper = new ObjectMapper();
     private static final String PORT_PREFIX = "port-";
+    private final RegexTransform rt;
 
-    public Regex(net.evilezh.mesosconsul.model.config.Transform transform) {
-        super(transform);
+    public Regex(String name, Transform config) throws Throwable {
+        super(name, config);
+        rt = mapper.readValue(mapper.writeValueAsBytes(config.config), RegexTransform.class);
     }
 
     private String getField(String fieldRef, Map<Match, Matcher> extract) {
@@ -52,11 +54,11 @@ public class Regex extends AbstractTranform {
 
     private String doEval(Target target, String portName, Map<Match, Matcher> extract) {
         StringBuilder sb = new StringBuilder();
-        Matcher matcher = varExtract.matcher(target.eval);
+        Matcher matcher = varExtract.matcher(target.task);
         int pos = 0;
         while (matcher.find()) {
-            sb.append(target.eval.substring(pos, matcher.start() - 2));
-            String fieldRef = target.eval.substring(matcher.start(), matcher.end()).trim();
+            sb.append(target.task.substring(pos, matcher.start() - 2));
+            String fieldRef = target.task.substring(matcher.start(), matcher.end()).trim();
             if (fieldRef.equals("_port-name_")) {
                 sb.append(portName);
             } else {
@@ -64,14 +66,15 @@ public class Regex extends AbstractTranform {
             }
             pos = matcher.end() + 1;
         }
-        sb.append(target.eval.substring(pos));
+        sb.append(target.task.substring(pos));
         return sb.toString();
     }
 
     @Override
-    synchronized public <T extends net.evilezh.mesosconsul.model.config.Transform> Map<String, Integer> apply(Task task, Agent agent) {
-        final Map<String, Integer> ret = new HashMap<>();
-        RegexTransform rt = (RegexTransform) transform;
+    synchronized public List<TransformResult> transform(Task task, Agent agent, String servicePrefix) {
+//        final Map<String, Integer> ret = new HashMap<>();
+        final List<TransformResult> ret = new ArrayList<>();
+        //RegexTransform rt = (RegexTransform) transform;
         Map<Match, Matcher> extract = new HashMap<>();
         boolean isMatch = false;
         for (Match match : rt.expression.match) {
@@ -104,10 +107,10 @@ public class Regex extends AbstractTranform {
                             //extract port name
                             StringBuilder sb = new StringBuilder();
                             int pos = 0;
-                            Matcher matcher = varExtract.matcher(target.portName);
+                            Matcher matcher = varExtract.matcher(target.port);
                             while (matcher.find()) {
-                                sb.append(target.portName.substring(pos, matcher.start() - 2));
-                                String fieldRef = target.portName.substring(matcher.start(), matcher.end()).trim();
+                                sb.append(target.port.substring(pos, matcher.start() - 2));
+                                String fieldRef = target.port.substring(matcher.start(), matcher.end()).trim();
                                 if (fieldRef.startsWith("$")) { //json path
                                     String namePart = JsonPath.read(mapper.writeValueAsString(port), fieldRef);
                                     if (namePart == null || namePart.equals("null")) {
@@ -121,9 +124,18 @@ public class Regex extends AbstractTranform {
                                 }
                                 pos = matcher.end() + 1;
                             }
-                            sb.append(target.portName.substring(pos));
+                            sb.append(target.port.substring(pos));
                             String portName = sb.toString();
-                            ret.put(doEval(target, portName, extract), port.number);
+                            TransformResult tr = new TransformResult();
+                            tr.agentId = agent.agentInfo.id;
+                            tr.port = port.number;
+                            tr.portName = portName;
+                            tr.transformName = this.name;
+                            tr.servicePrefix = servicePrefix;
+                            tr.taskName = doEval(target, portName, extract);
+                            tr.taskId = task.taskId;
+                            ret.add(tr);
+//                            ret.put(doEval(target, portName, extract), port.number);
                         } catch (JsonProcessingException e) {
                             e.printStackTrace();
                         }
@@ -135,9 +147,21 @@ public class Regex extends AbstractTranform {
                             RangeResource portRanges = (RangeResource) port;
 
                             AtomicInteger portIdx = new AtomicInteger(0);
-                            ret.putAll(portRanges.ranges.stream()
+                            ret.addAll(portRanges.ranges.stream()
                                     .flatMap(it -> IntStream.rangeClosed(it.begin, it.end).boxed())
-                                    .collect(Collectors.toMap(it -> doEval(target, PORT_PREFIX + portIdx.getAndDecrement(), extract), it -> it)));
+                                    .map(it -> {
+                                        TransformResult tr = new TransformResult();
+                                        tr.portName = PORT_PREFIX + portIdx.getAndIncrement();
+                                        tr.taskName = doEval(target, PORT_PREFIX + portIdx.getAndIncrement(), extract);
+                                        tr.agentId = agent.agentInfo.id;
+                                        tr.port = it;
+                                        tr.transformName = this.name;
+                                        tr.servicePrefix = servicePrefix;
+                                        tr.taskId = task.taskId;
+                                        doEval(target, PORT_PREFIX + portIdx.getAndDecrement(), extract);
+                                        return tr;
+                                    })
+                                    .collect(Collectors.toList()));
                         });
                     }
                 }
@@ -148,7 +172,6 @@ public class Regex extends AbstractTranform {
     }
 
     private String extract(String source, Map<String, Matcher> vars) {
-
         return "";
     }
 }

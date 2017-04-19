@@ -1,20 +1,22 @@
 package net.evilezh.mesosconsul;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
+import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
+import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
+import io.vertx.ext.dropwizard.MetricsService;
+import net.evilezh.mesosconsul.consul.Consul;
 import net.evilezh.mesosconsul.model.config.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
-import javax.script.ScriptException;
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Properties;
@@ -25,6 +27,7 @@ public class Main {
     public static final HttpClient client;
     static Main instance;
 
+    //initialize default http client
     static {
         SslContextFactory sslContextFactory = new SslContextFactory();
         sslContextFactory.setTrustAll(true);
@@ -40,6 +43,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
+        //set JSONPath defaults to use Jackson
         Configuration.setDefaults(new Configuration.Defaults() {
             private final JsonProvider jsonProvider = new JacksonJsonProvider();
             private final MappingProvider mappingProvider = new JacksonMappingProvider();
@@ -60,7 +64,9 @@ public class Main {
             }
         });
 
+        //quit on any initialisation error
         try {
+            //we need consul URL and PATH in consul where to read/write configurations. Token is optional.
             Properties properties = System.getProperties();
             if (!properties.containsKey("consul")) {
                 logger.error("Consul address missing. Please specify -Dconsul=<consul URL>");
@@ -70,23 +76,32 @@ public class Main {
                 logger.error("Configuration path missing. Please specify -Dpath=<path to config>");
             }
 
-
             Config config = new Config();
             net.evilezh.mesosconsul.model.config.Consul consulConfig = new net.evilezh.mesosconsul.model.config.Consul();
-            config.sleep = 5000;
+            config.servicePrefix = "mconsul";
             consulConfig.address = properties.getProperty("consul");
             consulConfig.token = Optional.ofNullable(properties.getProperty("token"));
-            config.consul = consulConfig;
-            Consul consul = new Consul(config);
-            ObjectMapper om = new ObjectMapper();
-            Config cfg = om.readValue(consul.getKey(properties.getProperty("path")), Config.class);
-            Engine engine = new Engine(cfg);
-            engine.startRequest();
+            consulConfig.path = properties.getProperty("path");
+
+//            config.consul = consulConfig;
+            Consul consul = new Consul(consulConfig);
+            Engine cm = Engine.getEngine(consul);
+
+            DropwizardMetricsOptions metricsOptions =
+                    new DropwizardMetricsOptions()
+                            .setBaseName("")
+                            .setJmxEnabled(true)
+                            .setJmxDomain("mesos-consul")
+                            .setEnabled(true)
+                            .setRegistryName("mesos-consul");
+
+
+            Vertx vertx = Vertx.vertx(new VertxOptions().setMetricsOptions(metricsOptions));
+            MetricsService metricsService = MetricsService.create(vertx);
+            vertx.deployVerticle(new RestAPI(cm));
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             System.exit(1);
         }
-
-
     }
 }

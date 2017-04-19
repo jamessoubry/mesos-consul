@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@JsonIgnoreProperties(value = {"data", "timestamp", "uuid", "reason"})
+@JsonIgnoreProperties(value = {"data", "uuid", "reason"})
 public class Status {
     @JsonProperty("agent_id")
     public String agentId;
@@ -23,6 +23,7 @@ public class Status {
     @JsonProperty("labels")
     Map<String, String> labels;
     public boolean healthy = true;
+    public double timestamp;
 
     public void setAgentId(Map<String, String> data) {
         agentId = data.get("value");

@@ -3,6 +3,7 @@ package net.evilezh.mesosconsul.model.mesos;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -26,9 +27,11 @@ public class Task {
     @JsonProperty("labels")
     public Map<String, String> labels;
     @JsonProperty("statuses")
-    public List<Status> statuses;
+    public List<Status> statuses = new ArrayList<>();
+/*
     @JsonProperty("status")
     public Status status;
+*/
     @JsonProperty("executor_id")
     public String executorId;
     public Object container;

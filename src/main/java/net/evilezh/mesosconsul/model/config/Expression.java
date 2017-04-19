@@ -6,8 +6,10 @@ import java.util.List;
 
 public class Expression {
     public String operator;
+/*
     @JsonProperty("ignore-missing")
     public boolean ignoreMissing = true;
+*/
     public List<Match> match;
 
     public void setOperator(String data) {

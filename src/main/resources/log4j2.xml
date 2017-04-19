@@ -6,6 +6,9 @@
         </Console>
     </Appenders>
     <Loggers>
+        <Logger name="net.evilezh.mesosconsul" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
         <Root level="info">
             <AppenderRef ref="Console"/>
         </Root>
