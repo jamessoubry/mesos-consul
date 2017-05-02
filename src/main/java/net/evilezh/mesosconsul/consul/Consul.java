@@ -28,9 +28,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static net.evilezh.mesosconsul.Main.client;
+import static net.evilezh.mesosconsul.Engine.getEngine;
 
 public class Consul {
     public static final String VERB_SET = "set";
@@ -419,5 +422,15 @@ public class Consul {
         } catch (InterruptedException | TimeoutException | ExecutionException | IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    static final Pattern mesosTaskPattern = Pattern.compile("(?<prefix>.*?):(?<taskId>.*?):(?<transform>.*?):(?<port>.*)");
+
+    public List<ConsulService> getServices(String variable, String data) {
+        String prefix = getEngine().getConfig().servicePrefix;
+        return nodes.stream().flatMap(entry -> entry.services.values().stream()).filter(service -> {
+            Matcher matcher = mesosTaskPattern.matcher(service.id);
+            return matcher.matches() && matcher.group("prefix").equals(prefix) && matcher.group(variable).equals(data);
+        }).collect(Collectors.toList());
     }
 }

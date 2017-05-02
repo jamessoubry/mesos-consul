@@ -161,6 +161,10 @@ public class Engine implements MesosEvent {
         return this.config;
     }
 
+    public Consul getConsul() {
+        return this.consul;
+    }
+
     public synchronized void setConfig(Config config) {
         if (mesos != null)
             mesos.destroy();

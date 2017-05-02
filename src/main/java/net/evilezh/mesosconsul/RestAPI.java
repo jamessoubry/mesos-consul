@@ -210,10 +210,18 @@ public class RestAPI extends AbstractVerticle {
     }
 
     private void disableTransform(RoutingContext rc) {
-
+        String type = rc.request().getParam("type");
     }
 
     private void getTransformStatus(RoutingContext rc) {
+
+    }
+
+    private void listServices(RoutingContext rc) {
+        manager.getConsul().getServices("prefix",manager.getConfig().servicePrefix);
+    }
+
+    private void listServicesForTransform(RoutingContext rc) {
 
     }
 
